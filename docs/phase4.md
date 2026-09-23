@@ -8,3 +8,10 @@ i27helpdesk-test
 i27helpdesk-stage
 i27helpdesk-prod
 ```
+* Before we deploy to gke in any environment , create the following environments in github actions 
+```bash
+dev
+test
+stage
+prod
+```
