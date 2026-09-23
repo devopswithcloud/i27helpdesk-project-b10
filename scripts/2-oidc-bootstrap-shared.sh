@@ -69,10 +69,20 @@ echo ""
 
 # ── STEP 3: Create the shared OIDC Provider ──────────────────
 echo "Step 3: Creating shared OIDC Provider (if it doesn't exist)..."
-if gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" \
+PROVIDER_STATE=$(gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" \
   --project="$PROJECT_ID" --location="global" \
-  --workload-identity-pool="$POOL_ID" >/dev/null 2>&1; then
-  echo "  Provider '$PROVIDER_ID' already exists — skipping."
+  --workload-identity-pool="$POOL_ID" \
+  --format='value(state)' 2>/dev/null || true)
+
+if [ "$PROVIDER_STATE" = "ACTIVE" ]; then
+  echo "  Provider '$PROVIDER_ID' already exists and is active — skipping."
+elif [ "$PROVIDER_STATE" = "DELETED" ]; then
+  echo "  Provider '$PROVIDER_ID' exists but is soft-deleted — undeleting..."
+  gcloud iam workload-identity-pools providers undelete "$PROVIDER_ID" \
+    --project="$PROJECT_ID" \
+    --location="global" \
+    --workload-identity-pool="$POOL_ID"
+  echo "  Provider undeleted."
 else
   gcloud iam workload-identity-pools providers create-oidc "$PROVIDER_ID" \
     --project="$PROJECT_ID" \
