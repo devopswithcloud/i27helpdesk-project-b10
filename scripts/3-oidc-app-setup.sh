@@ -89,16 +89,20 @@ echo ""
 
 # ── STEP 1: Verify shared pool + provider exist ─────────────────
 echo "Step 1: Verifying shared Workload Identity Pool + Provider exist..."
-if ! gcloud iam workload-identity-pools describe "$POOL_ID" \
-  --project="$PROJECT_ID" --location="global" >/dev/null 2>&1; then
-  echo "ERROR: Pool '$POOL_ID' not found in project '$PROJECT_ID'." >&2
+POOL_STATE=$(gcloud iam workload-identity-pools describe "$POOL_ID" \
+  --project="$PROJECT_ID" --location="global" \
+  --format='value(state)' 2>/dev/null || true)
+if [ "$POOL_STATE" != "ACTIVE" ]; then
+  echo "ERROR: Pool '$POOL_ID' not found or not ACTIVE (state: '${POOL_STATE:-missing}') in project '$PROJECT_ID'." >&2
   echo "Run 2-oidc-bootstrap-shared.sh first." >&2
   exit 1
 fi
-if ! gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" \
+PROVIDER_STATE=$(gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" \
   --project="$PROJECT_ID" --location="global" \
-  --workload-identity-pool="$POOL_ID" >/dev/null 2>&1; then
-  echo "ERROR: Provider '$PROVIDER_ID' not found in pool '$POOL_ID'." >&2
+  --workload-identity-pool="$POOL_ID" \
+  --format='value(state)' 2>/dev/null || true)
+if [ "$PROVIDER_STATE" != "ACTIVE" ]; then
+  echo "ERROR: Provider '$PROVIDER_ID' not found or not ACTIVE (state: '${PROVIDER_STATE:-missing}') in pool '$POOL_ID'." >&2
   echo "Run 2-oidc-bootstrap-shared.sh first." >&2
   exit 1
 fi
