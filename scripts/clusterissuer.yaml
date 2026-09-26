@@ -1,0 +1,54 @@
+# =============================================================
+# STEP 1: Install nginx Ingress Controller (run once per cluster)
+# =============================================================
+# kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.0/deploy/static/provider/cloud/deploy.yaml
+#
+# Verify:
+# kubectl get pods -n ingress-nginx
+# kubectl get svc -n ingress-nginx   <-- note the EXTERNAL-IP, point your DNS A records to it
+#
+# =============================================================
+# STEP 2: Install cert-manager (run once per cluster)
+# =============================================================
+# kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+#
+# Verify:
+# kubectl get pods -n cert-manager
+#
+# =============================================================
+# STEP 3: Apply this ClusterIssuer (run once per cluster)
+# =============================================================
+# kubectl apply -f clusterissuer.yaml
+#
+# Verify:
+# kubectl get clusterissuer letsencrypt-prod
+# kubectl describe clusterissuer letsencrypt-prod   <-- Status should show "Ready: True"
+#
+# =============================================================
+# STEP 4: DNS — before certs can be issued
+# =============================================================
+# Point your domains to the nginx Ingress Controller EXTERNAL-IP:
+#   i27helpdesk.in          -> EXTERNAL-IP
+#   prod.i27helpdesk.in     -> EXTERNAL-IP
+#   gateway.i27helpdesk.in   -> EXTERNAL-IP
+#
+# After applying Ingress resources, cert-manager will auto-issue
+# and renew Let's Encrypt certificates. Check cert status with:
+# kubectl get certificate -n <namespace>
+# kubectl describe certificate <name> -n <namespace>
+# =============================================================
+
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: devopswithcloud@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx
